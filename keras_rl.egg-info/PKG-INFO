@@ -1,0 +1,11 @@
+Metadata-Version: 2.1
+Name: keras-rl
+Version: 0.4.2
+Summary: Deep Reinforcement Learning for Keras
+Home-page: https://github.com/keras-rl/keras-rl
+Author: Matthias Plappert
+Author-email: matthiasplappert@me.com
+License: MIT
+Description: UNKNOWN
+Platform: UNKNOWN
+Provides-Extra: gym
