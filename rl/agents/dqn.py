@@ -101,7 +101,7 @@ class DQNAgent(AbstractDQNAgent):
  
     """
     def __init__(self, model, policy=None, test_policy=None, enable_double_dqn=False, enable_dueling_network=False,
-                 dueling_type='avg', *args, **kwargs):
+                 dueling_type='avg', vary_eps=True, anneal_steps=None, *args, **kwargs):
         super(DQNAgent, self).__init__(*args, **kwargs)
 
         # Validate (important) input.
@@ -148,6 +148,14 @@ class DQNAgent(AbstractDQNAgent):
             test_policy = GreedyQPolicy()
         self.policy = policy
         self.test_policy = test_policy
+
+        # eGreedy parameters
+        self.init_exp = 0.9
+        self.final_exp = 0.0
+        self.exploration = self.init_exp
+        self.anneal_steps = anneal_steps
+        # vary epsilon greedy policy
+        self.vary_eps = vary_eps
 
         # State.
         self.reset_states()
@@ -227,7 +235,13 @@ class DQNAgent(AbstractDQNAgent):
         state = self.memory.get_recent_state(observation)
         q_values = self.compute_q_values(state)
         if self.training:
-            action = self.policy.select_action(q_values=q_values)
+            if (self.vary_eps):
+                self.annealExploration()
+                action = self.policy.select_action_vary(q_values=q_values, eps=(self.exploration))
+                if (self.exploration == 0):
+                    self.training = False
+            else:
+                action = self.policy.select_action(q_values=q_values)
         else:
             action = self.test_policy.select_action(q_values=q_values)
 
@@ -367,6 +381,11 @@ class DQNAgent(AbstractDQNAgent):
     def test_policy(self, policy):
         self.__test_policy = policy
         self.__test_policy._set_agent(self)
+
+
+    def annealExploration(self, stategy='linear'):
+        ratio = max((self.anneal_steps - self.step) / float(self.anneal_steps), 0)
+        self.exploration = (self.init_exp - self.final_exp) * ratio + self.final_exp
 
 
 class NAFLayer(Layer):

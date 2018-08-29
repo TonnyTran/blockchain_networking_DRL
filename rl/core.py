@@ -13,6 +13,7 @@ from rl.callbacks import (
     Visualizer
 )
 
+import xlwt
 
 class Agent(object):
     """Abstract base class for all implemented agents.
@@ -52,7 +53,7 @@ class Agent(object):
 
     def fit(self, env, nb_steps, action_repetition=1, callbacks=None, verbose=1,
             visualize=False, nb_max_start_steps=0, start_step_policy=None, log_interval=10000,
-            nb_max_episode_steps=None):
+            nb_max_episode_steps=None, version=None):
         """Trains the agent on the given environment.
 
         # Arguments
@@ -120,6 +121,11 @@ class Agent(object):
         episode_reward = None
         episode_step = None
         did_abort = False
+
+        # open workbook to store result
+        workbook = xlwt.Workbook()
+        sheet = workbook.add_sheet('DQN')
+
         try:
             while self.step < nb_steps:
                 if observation is None:  # start of a new episode
@@ -175,6 +181,7 @@ class Agent(object):
                 for _ in range(action_repetition):
                     callbacks.on_action_begin(action)
                     observation, r, done, info = env.step(action)
+                    # print(observation, r, done, info)
                     observation = deepcopy(observation)
                     if self.processor is not None:
                         observation, r, done, info = self.processor.process_step(observation, r, done, info)
@@ -191,13 +198,13 @@ class Agent(object):
                 if nb_max_episode_steps and episode_step >= nb_max_episode_steps - 1:
                     # Force a terminal state.
                     done = True
-                metrics = self.backward(reward, terminal=done)
+                metrics = self.backward(reward[0], terminal=done)
                 episode_reward += reward
 
                 step_logs = {
                     'action': action,
                     'observation': observation,
-                    'reward': reward,
+                    'reward': reward[0],
                     'metrics': metrics,
                     'episode': episode,
                     'info': accumulated_info,
@@ -217,11 +224,17 @@ class Agent(object):
 
                     # This episode is finished, report and reset.
                     episode_logs = {
-                        'episode_reward': episode_reward,
+                        'episode_reward': episode_reward[0],
                         'nb_episode_steps': episode_step,
                         'nb_steps': self.step,
                     }
                     callbacks.on_episode_end(episode, episode_logs)
+
+                    sheet.write(episode + 1, 0, str(episode))
+                    sheet.write(episode + 1, 1, str(episode_reward[0]))
+                    sheet.write(episode + 1, 2, str(episode_reward[1]))
+                    sheet.write(episode + 1, 3, str(episode_reward[2]))
+                    sheet.write(episode + 1, 4, str(episode_reward[3]))
 
                     episode += 1
                     observation = None
@@ -234,6 +247,12 @@ class Agent(object):
             did_abort = True
         callbacks.on_train_end(logs={'did_abort': did_abort})
         self._on_train_end()
+        file_name = 'result_v' + version + '.xls'
+        # if (self.enable_double_dqn):
+        #     file_name = 'DDQN_' + file_name
+        # if (self.enable_dueling_network):
+        #     file_name = 'Dueling_' + file_name
+        workbook.save('../results/' + file_name)
 
         return history
 

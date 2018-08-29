@@ -168,6 +168,25 @@ class EpsGreedyQPolicy(Policy):
             action = np.argmax(q_values)
         return action
 
+    def select_action_vary(self, q_values, eps):
+        """Return the selected action with eps as input
+
+        # Arguments
+            q_values (np.ndarray): List of the estimations of Q for each action
+
+        # Returns
+            Selection action
+        """
+        assert q_values.ndim == 1
+        nb_actions = q_values.shape[0]
+        self.eps = eps
+
+        if np.random.uniform() < self.eps:
+            action = np.random.random_integers(0, nb_actions-1)
+        else:
+            action = np.argmax(q_values)
+        return action
+
     def get_config(self):
         """Return configurations of EpsGreedyPolicy
 
